@@ -11,7 +11,6 @@ import (
 
 	"github.com/pjcalvo/go-cache/cache"
 	"github.com/pjcalvo/go-cache/connection"
-	"github.com/pjcalvo/go-cache/message"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -46,29 +45,22 @@ func main() {
 			return
 		}
 
-		json.NewEncoder(w).Encode(res)
 		w.WriteHeader(http.StatusAccepted)
+		json.NewEncoder(w).Encode(res)
 	})
-
-	prod, err := message.InitProducer()
-	if err != nil {
-		panic(err)
-	}
 
 	r.HandleFunc("/get/{id}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		key := vars["id"]
 
 		value, err := cache.Get(key, func(key string) (value any, ttlSecs int, err error) {
+			// sleeps mimics operation slowness
 			time.Sleep(10 * time.Second)
+			fmt.Println("read from function")
 			res, err := conn.Get(key)
 			if err != nil {
 				w.WriteHeader(http.StatusNotFound)
 				return nil, 0, fmt.Errorf("something wrong happened when searching: %v", err)
-			}
-			err = prod.Send(message.Message{MessageID: key})
-			if err != nil {
-				return nil, 0, fmt.Errorf("something wrong happened when writing message: %v", err)
 			}
 			return res.Value, ttlCache, nil
 		})
@@ -79,8 +71,8 @@ func main() {
 			return
 		}
 
-		json.NewEncoder(w).Encode(value)
 		w.WriteHeader(http.StatusAccepted)
+		json.NewEncoder(w).Encode(value)
 
 	})
 
@@ -89,8 +81,6 @@ func main() {
 		Handler: r,
 	}
 
-	// start kafka consumer
-	cons, err := message.InitConsumer()
 	// Set up a channel for handling Ctrl-C, etc
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
@@ -100,11 +90,7 @@ func main() {
 			case sig := <-sigchan:
 				fmt.Printf("Caught signal %v: terminating\n", sig)
 				srv.Close()
-				prod.Close()
-				cons.Close()
 				return
-			default:
-				cons.Read()
 			}
 		}
 	}()

@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -63,6 +64,7 @@ func (c Cache) Get(key string, f func(key string) (value any, ttlSecs int, err e
 		for {
 			select {
 			case <-v.read:
+				fmt.Println("read from channel")
 				v.value, _ = c.entries[key]
 				return v.value, nil
 			}
