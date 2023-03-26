@@ -57,8 +57,8 @@ func main() {
 
 		value, err := cache.Get(key, func(key string) (value any, ttlSecs int, err error) {
 			// sleeps mimics operation slowness
-			time.Sleep(10 * time.Second)
-			fmt.Println("read from function")
+			time.Sleep(1 * time.Second)
+			fmt.Println("read from db")
 			res, err := conn.Get(key)
 			if err != nil {
 				w.WriteHeader(http.StatusNotFound)

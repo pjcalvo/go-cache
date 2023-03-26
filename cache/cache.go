@@ -9,7 +9,7 @@ import (
 type Entry struct {
 	value      any
 	expiration time.Time
-	read       chan bool
+	read       chan struct{}
 }
 
 func (e Entry) isExpired() bool {
@@ -42,7 +42,7 @@ func (c Cache) Get(key string, f func(key string) (value any, ttlSecs int, err e
 	v, ok := c.entries[key]
 	if !ok || (v.value != nil && v.isExpired()) {
 		// open channel
-		read := make(chan bool, 1)
+		read := make(chan struct{})
 		c.entries[key] = Entry{
 			read: read,
 		}
@@ -57,7 +57,6 @@ func (c Cache) Get(key string, f func(key string) (value any, ttlSecs int, err e
 		}
 
 		// close channel
-		read <- true
 		close(read)
 		return c.Get(key, nil)
 	}
@@ -65,8 +64,7 @@ func (c Cache) Get(key string, f func(key string) (value any, ttlSecs int, err e
 		for {
 			select {
 			case <-v.read:
-				fmt.Println("read from channel")
-				v.value, _ = c.entries[key]
+				fmt.Println("read from waiting channel")
 				return c.Get(key, nil)
 			}
 		}
