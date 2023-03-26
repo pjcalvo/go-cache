@@ -49,6 +49,8 @@ func main() {
 		json.NewEncoder(w).Encode(res)
 	})
 
+	counter := 0
+
 	r.HandleFunc("/get/{id}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		key := vars["id"]
@@ -62,7 +64,8 @@ func main() {
 				w.WriteHeader(http.StatusNotFound)
 				return nil, 0, fmt.Errorf("something wrong happened when searching: %v", err)
 			}
-			return res.Value, ttlCache, nil
+			counter++
+			return fmt.Sprintf("%s%v", res.Value, counter), ttlCache, nil
 		})
 
 		if err != nil {

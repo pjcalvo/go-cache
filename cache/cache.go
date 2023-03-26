@@ -58,7 +58,8 @@ func (c Cache) Get(key string, f func(key string) (value any, ttlSecs int, err e
 
 		// close channel
 		read <- true
-		return value, err
+		close(read)
+		return c.Get(key, nil)
 	}
 	if v.read != nil {
 		for {
@@ -66,7 +67,7 @@ func (c Cache) Get(key string, f func(key string) (value any, ttlSecs int, err e
 			case <-v.read:
 				fmt.Println("read from channel")
 				v.value, _ = c.entries[key]
-				return v.value, nil
+				return c.Get(key, nil)
 			}
 		}
 	}
